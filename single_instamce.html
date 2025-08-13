@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banker's Algorithm Visualization</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.18.0/cytoscape.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    #cy {
+      width: 100%;
+      height: 500px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      background: white;
+    }
+    
+    .glass-card {
+      backdrop-filter: blur(16px) saturate(180%);
+      background-color: rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.125);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    }
+    
+    .input-glass {
+      backdrop-filter: blur(8px);
+      background-color: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+      color: #333;
+    }
+    
+    .input-glass::placeholder {
+      color: rgba(0, 0, 0, 0.6);
+    }
+    
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    
+    table th, table td {
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 8px;
+      text-align: center;
+      color: #fff;
+      font-weight: 600;
+    }
+    
+    table th {
+      background: rgba(0, 0, 0, 0.2);
+      font-weight: 700;
+    }
+    
+    .process-step {
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      color: white;
+      padding: 8px 16px;
+      margin: 4px;
+      border-radius: 20px;
+      display: inline-block;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .error-animation {
+      animation: errorPulse 1s infinite;
+    }
+    
+    @keyframes errorPulse {
+      0% { background: linear-gradient(135deg, #ff6b6b, #ee5a5a); }
+      50% { background: linear-gradient(135deg, #ff4757, #c44569); }
+      100% { background: linear-gradient(135deg, #ff6b6b, #ee5a5a); }
+    }
+    
+    .success-message {
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 10px 0;
+    }
+    
+    .error-message {
+      background: linear-gradient(45deg, #ff6b6b, #ee5a5a);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container-fluid">
+  <nav class="navbar navbar-expand-lg navbar-dark glass-card mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold" href="#"> Banker's Algorithm Visualizer</a>
+      <div class="navbar-nav ms-auto">
+        <span class="nav-link text-light">Deadlock Prevention & Avoidance</span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="row g-4">
+    <!-- Input Section -->
+    <div class="col-lg-4">
+      <div class="glass-card p-4 h-100">
+        <h4 class="text-white text-center mb-4"> System Configuration</h4>
+        
+        <div class="mb-3">
+          <label class="form-label text-white fw-bold">Number of Processes:</label>
+          <input id="processCount" type="number" class="form-control input-glass" placeholder="e.g., 5" value="5">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label text-white fw-bold">Number of Resources:</label>
+          <input id="resourceCount" type="number" class="form-control input-glass" placeholder="e.g., 3" value="3">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label text-white fw-bold">Total Resources (comma-separated):</label>
+          <input id="totalResources" class="form-control input-glass" placeholder="e.g., 10,5,7" value="10,5,7">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label text-white fw-bold">Allocation Matrix (rows semicolon-separated):</label>
+          <textarea id="allocationMatrix" class="form-control input-glass" rows="5" placeholder="Format: row1;row2;row3">0,1,0;2,0,0;3,0,2;2,1,1;0,0,2</textarea>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label text-white fw-bold">Max Matrix (rows semicolon-separated):</label>
+          <textarea id="maxMatrix" class="form-control input-glass" rows="5" placeholder="Format: row1;row2;row3">7,5,3;3,2,2;9,0,2;4,2,2;5,3,3</textarea>
+        </div>
+        
+        <button onclick="runBankersAlgorithm()" class="btn btn-success w-100 py-3 fw-bold">
+           Run Banker's Algorithm
+        </button>
+        
+        <button onclick="loadSampleData()" class="btn btn-info w-100 mt-2 fw-bold">
+           Load Sample Test Case
+        </button>
+      </div>
+    </div>
+    
+    <!-- Graph Visualization -->
+    <div class="col-lg-8">
+      <div class="glass-card p-4">
+        <h4 class="text-white text-center mb-4"> Resource Allocation Graph</h4>
+        <div id="cy"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Results Section -->
+  <div class="row g-4 mt-2">
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <h4 class="text-white text-center mb-4"> System Tables</h4>
+        <div id="tablesContainer" class="row">
+          <div class="col-md-6 mb-3">
+            <h6 class="text-white">Process IDs</h6>
+            <div id="processTable"></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <h6 class="text-white">Allocation Matrix</h6>
+            <div id="allocationTable"></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <h6 class="text-white">Max Matrix</h6>
+            <div id="maxTable"></div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <h6 class="text-white">Need Matrix</h6>
+            <div id="needTable"></div>
+          </div>
+          <div class="col-12">
+            <h6 class="text-white">Available Resources</h6>
+            <div id="availableTable"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <h4 class="text-white text-center mb-4"> Algorithm Results</h4>
+        <div id="resultContainer">
+          <p class="text-white text-center">Run the algorithm to see results...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Global variables
+let cy = null;
+let currentData = {
+  processCount: 5,
+  resourceCount: 3,
+  totalResources: [10, 5, 7],
+  allocationMatrix: [
+    [0, 1, 0],
+    [2, 0, 0],
+    [3, 0, 2],
+    [2, 1, 1],
+    [0, 0, 2]
+  ],
+  maxMatrix: [
+    [7, 5, 3],
+    [3, 2, 2],
+    [9, 0, 2],
+    [4, 2, 2],
+    [5, 3, 3]
+  ]
+};
+
+function loadSampleData() {
+  document.getElementById('processCount').value = '5';
+  document.getElementById('resourceCount').value = '3';
+  document.getElementById('totalResources').value = '10,5,7';
+  document.getElementById('allocationMatrix').value = '0,1,0;2,0,0;3,0,2;2,1,1;0,0,2';
+  document.getElementById('maxMatrix').value = '7,5,3;3,2,2;9,0,2;4,2,2;5,3,3';
+}
+
+function parseMatrix(matrixString) {
+  if (!matrixString || matrixString.trim() === '') {
+    return [];
+  }
+  
+  try {
+    return matrixString.split(';').map(row => {
+      return row.split(',').map(cell => {
+        const num = parseInt(cell.trim());
+        if (isNaN(num)) {
+          throw new Error('Invalid number in matrix: ' + cell);
+        }
+        return num;
+      });
+    });
+  } catch (error) {
+    throw new Error('Error parsing matrix: ' + error.message);
+  }
+}
+
+function createTable(data, containerId, headers = null) {
+  let htmlContent = '<table class="table table-sm">';
+  
+  if (headers) {
+    htmlContent += '<thead><tr>';
+    headers.forEach(header => {
+      htmlContent += '<th>' + header + '</th>';
+    });
+    htmlContent += '</tr></thead>';
+  }
+  
+  htmlContent += '<tbody>';
+  data.forEach(row => {
+    htmlContent += '<tr>';
+    if (Array.isArray(row)) {
+      row.forEach(cell => {
+        htmlContent += '<td>' + cell + '</td>';
+      });
+    } else {
+      htmlContent += '<td>' + row + '</td>';
+    }
+    htmlContent += '</tr>';
+  });
+  htmlContent += '</tbody></table>';
+  
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.innerHTML = htmlContent;
+  }
+}
+
+function calculateNeed(maxMatrix, allocationMatrix) {
+  const need = [];
+  for (let i = 0; i < maxMatrix.length; i++) {
+    need[i] = [];
+    for (let j = 0; j < maxMatrix[i].length; j++) {
+      need[i][j] = maxMatrix[i][j] - allocationMatrix[i][j];
+    }
+  }
+  return need;
+}
+
+function calculateAvailable(totalResources, allocationMatrix) {
+  const available = [];
+  for (let j = 0; j < totalResources.length; j++) {
+    available[j] = totalResources[j];
+    for (let i = 0; i < allocationMatrix.length; i++) {
+      available[j] -= allocationMatrix[i][j];
+    }
+  }
+  return available;
+}
+
+function isSafe(processes, available, maxMatrix, allocationMatrix) {
+  const need = calculateNeed(maxMatrix, allocationMatrix);
+  const finish = new Array(processes).fill(false);
+  const safeSequence = [];
+  const work = [];
+  for (let i = 0; i < available.length; i++) {
+    work[i] = available[i];
+  }
+  const workHistory = [];
+  
+  let count = 0;
+  
+  while (count < processes) {
+    let found = false;
+    
+    for (let p = 0; p < processes; p++) {
+      if (!finish[p]) {
+        let canAllocate = true;
+        for (let j = 0; j < available.length; j++) {
+          if (need[p][j] > work[j]) {
+            canAllocate = false;
+            break;
+          }
+        }
+        
+        if (canAllocate) {
+          for (let k = 0; k < available.length; k++) {
+            work[k] += allocationMatrix[p][k];
+          }
+          workHistory.push([...work]);
+          safeSequence.push(p);
+          finish[p] = true;
+          found = true;
+          count++;
+          break;
+        }
+      }
+    }
+    
+    if (!found) {
+      return { safe: false, sequence: [], workHistory: [] };
+    }
+  }
+  
+  return { safe: true, sequence: safeSequence, workHistory: workHistory };
+}
+
+function displayResults(result, processes, available) {
+  const container = document.getElementById('resultContainer');
+  let htmlContent = '';
+  
+  if (result.safe) {
+    htmlContent = '<div class="success-message">';
+    htmlContent += '<h5> System is in SAFE state!</h5>';
+    htmlContent += '<p><strong>Safe Sequence:</strong></p>';
+    htmlContent += '<div class="text-center">';
+    result.sequence.forEach((p, index) => {
+      htmlContent += '<span class="process-step">P' + p + '</span>';
+      if (index < result.sequence.length - 1) {
+        htmlContent += ' → ';
+      }
+    });
+    htmlContent += '</div>';
+    
+    // Show work history
+    htmlContent += '<div class="mt-3"><strong>Available Resources at each step:</strong></div>';
+    htmlContent += '<table class="table table-sm mt-2"><thead><tr><th>Step</th>';
+    for (let i = 0; i < available.length; i++) {
+      htmlContent += '<th>R' + i + '</th>';
+    }
+    htmlContent += '</tr></thead><tbody>';
+    
+    htmlContent += '<tr><td>Initial</td>';
+    available.forEach(val => {
+      htmlContent += '<td>' + val + '</td>';
+    });
+    htmlContent += '</tr>';
+    
+    result.workHistory.forEach((work, index) => {
+      htmlContent += '<tr><td>After P' + result.sequence[index] + '</td>';
+      work.forEach(val => {
+        htmlContent += '<td>' + val + '</td>';
+      });
+      htmlContent += '</tr>';
+    });
+    htmlContent += '</tbody></table>';
+    htmlContent += '</div>';
+    
+    document.body.classList.remove('error-animation');
+  } else {
+    htmlContent = '<div class="error-message">';
+    htmlContent += '<h5> System is in UNSAFE state!</h5>';
+    htmlContent += '<p>Deadlock may occur. The system cannot find a safe sequence.</p>';
+    htmlContent += '</div>';
+    
+    document.body.classList.add('error-animation');
+    setTimeout(() => {
+      document.body.classList.remove('error-animation');
+    }, 3000);
+  }
+  
+  container.innerHTML = htmlContent;
+}
+
+function createResourceGraph(processes, resources, allocationMatrix, needMatrix) {
+  const elements = [];
+  
+  // Add process nodes
+  for (let i = 0; i < processes; i++) {
+    elements.push({
+      data: { id: 'P' + i, label: 'P' + i, type: 'process' }
+    });
+  }
+  
+  // Add resource nodes
+  for (let i = 0; i < resources; i++) {
+    elements.push({
+      data: { id: 'R' + i, label: 'R' + i, type: 'resource' }
+    });
+  }
+  
+  // Add allocation edges (Resource → Process)
+  for (let i = 0; i < processes; i++) {
+    for (let j = 0; j < resources; j++) {
+      if (allocationMatrix[i][j] > 0) {
+        elements.push({
+          data: {
+            id: 'alloc-R' + j + '-P' + i,
+            source: 'R' + j,
+            target: 'P' + i,
+            type: 'allocation',
+            weight: allocationMatrix[i][j]
+          }
+        });
+      }
+    }
+  }
+  
+  // Add request edges (Process → Resource)
+  for (let i = 0; i < processes; i++) {
+    for (let j = 0; j < resources; j++) {
+      if (needMatrix[i][j] > 0) {
+        elements.push({
+          data: {
+            id: 'need-P' + i + '-R' + j,
+            source: 'P' + i,
+            target: 'R' + j,
+            type: 'request',
+            weight: needMatrix[i][j]
+          }
+        });
+      }
+    }
+  }
+  
+  const style = [
+    {
+      selector: 'node[type="process"]',
+      style: {
+        'background-color': '#4CAF50',
+        'label': 'data(label)',
+        'width': '50px',
+        'height': '50px',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        'color': 'white',
+        'text-outline-width': 2,
+        'text-outline-color': '#4CAF50',
+        'shape': 'ellipse'
+      }
+    },
+    {
+      selector: 'node[type="resource"]',
+      style: {
+        'background-color': '#2196F3',
+        'label': 'data(label)',
+        'width': '40px',
+        'height': '40px',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        'color': 'white',
+        'text-outline-width': 2,
+        'text-outline-color': '#2196F3',
+        'shape': 'rectangle'
+      }
+    },
+    {
+      selector: 'edge[type="allocation"]',
+      style: {
+        'curve-style': 'bezier',
+        'width': 3,
+        'line-color': '#4CAF50',
+        'target-arrow-color': '#4CAF50',
+        'target-arrow-shape': 'triangle',
+        'label': 'data(weight)'
+      }
+    },
+    {
+      selector: 'edge[type="request"]',
+      style: {
+        'curve-style': 'bezier',
+        'width': 2,
+        'line-color': '#ff9800',
+        'target-arrow-color': '#ff9800',
+        'target-arrow-shape': 'triangle',
+        'line-style': 'dashed',
+        'label': 'data(weight)'
+      }
+    }
+  ];
+  
+  // Destroy existing cytoscape instance if it exists
+  if (cy) {
+    cy.destroy();
+    cy = null;
+  }
+  
+  // Create new cytoscape instance
+  try {
+    cy = cytoscape({
+      container: document.getElementById('cy'),
+      elements: elements,
+      style: style,
+      layout: {
+        name: 'cose',
+        animate: true,
+        randomize: true,
+        nodeRepulsion: 8000,
+        idealEdgeLength: 100,
+        edgeElasticity: 200,
+        nestingFactor: 5,
+        gravity: 80,
+        numIter: 1000,
+        initialTemp: 200,
+        coolingFactor: 0.95,
+        minTemp: 1.0
+      }
+    });
+  } catch (error) {
+    console.error('Error creating graph:', error);
+    document.getElementById('cy').innerHTML = '<div class="alert alert-warning">Graph could not be displayed</div>';
+  }
+}
+
+function runBankersAlgorithm() {
+  try {
+    const processCount = parseInt(document.getElementById('processCount').value);
+    const resourceCount = parseInt(document.getElementById('resourceCount').value);
+    const totalResourcesInput = document.getElementById('totalResources').value;
+    const allocationInput = document.getElementById('allocationMatrix').value;
+    const maxInput = document.getElementById('maxMatrix').value;
+    
+    // Validate inputs
+    if (!processCount || processCount <= 0) {
+      throw new Error('Please enter a valid number of processes');
+    }
+    if (!resourceCount || resourceCount <= 0) {
+      throw new Error('Please enter a valid number of resources');
+    }
+    if (!totalResourcesInput.trim()) {
+      throw new Error('Please enter total resources');
+    }
+    if (!allocationInput.trim()) {
+      throw new Error('Please enter allocation matrix');
+    }
+    if (!maxInput.trim()) {
+      throw new Error('Please enter max matrix');
+    }
+    
+    const totalResources = totalResourcesInput.split(',').map(x => {
+      const num = parseInt(x.trim());
+      if (isNaN(num)) {
+        throw new Error('Invalid number in total resources: ' + x);
+      }
+      return num;
+    });
+    
+    const allocationMatrix = parseMatrix(allocationInput);
+    const maxMatrix = parseMatrix(maxInput);
+    
+    // Validate matrix dimensions
+    if (allocationMatrix.length !== processCount) {
+      throw new Error('Allocation matrix row count (' + allocationMatrix.length + ') doesn\'t match process count (' + processCount + ')');
+    }
+    if (maxMatrix.length !== processCount) {
+      throw new Error('Max matrix row count (' + maxMatrix.length + ') doesn\'t match process count (' + processCount + ')');
+    }
+    if (allocationMatrix[0].length !== resourceCount) {
+      throw new Error('Allocation matrix column count doesn\'t match resource count');
+    }
+    if (maxMatrix[0].length !== resourceCount) {
+      throw new Error('Max matrix column count doesn\'t match resource count');
+    }
+    if (totalResources.length !== resourceCount) {
+      throw new Error('Total resources count doesn\'t match resource count');
+    }
+    
+    // Calculate derived matrices
+    const needMatrix = calculateNeed(maxMatrix, allocationMatrix);
+    const available = calculateAvailable(totalResources, allocationMatrix);
+    
+    // Create tables
+    const processIds = [];
+    for (let i = 0; i < processCount; i++) {
+      processIds.push('P' + i);
+    }
+    createTable([processIds], 'processTable', ['Process']);
+    
+    const resourceHeaders = [];
+    for (let i = 0; i < resourceCount; i++) {
+      resourceHeaders.push('R' + i);
+    }
+    
+    createTable(allocationMatrix, 'allocationTable', resourceHeaders);
+    createTable(maxMatrix, 'maxTable', resourceHeaders);
+    createTable(needMatrix, 'needTable', resourceHeaders);
+    createTable([available], 'availableTable', resourceHeaders);
+    
+    // Run safety algorithm
+    const result = isSafe(processCount, available, maxMatrix, allocationMatrix);
+    
+    // Display results
+    displayResults(result, processCount, available);
+    
+    // Create graph
+    createResourceGraph(processCount, resourceCount, allocationMatrix, needMatrix);
+    
+  } catch (error) {
+    console.error('Error:', error);
+    const container = document.getElementById('resultContainer');
+    container.innerHTML = '<div class="error-message"><h5> Error</h5><p>' + error.message + '</p></div>';
+  }
+}
+
+// Initialize with sample data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  loadSampleData();
+});
+</script>
+
+</body>
+</html>
